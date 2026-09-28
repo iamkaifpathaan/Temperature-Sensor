@@ -20,9 +20,13 @@ OUT = os.path.join(HERE, "Hexapod_Progress_Report.docx")
 FONT = "Times New Roman"
 
 # ----------------------------------------------------------------- helpers
-def set_widths(t, widths):
+TEXTW = 6.45  # usable text width in inches (A4, 1.0" left + 0.8" right margin)
+
+
+def set_widths(t, widths, fill=False):
     """Fixed column widths that both Word and LibreOffice respect."""
     t.autofit = False
+    if fill or sum(widths) > TEXTW: widths = [w * TEXTW / sum(widths) for w in widths]
     tbl = t._tbl; tblPr = tbl.tblPr
     for old in tblPr.findall(qn("w:tblW")): tblPr.remove(old)
     tw = OxmlElement("w:tblW"); tw.set(qn("w:w"), str(int(sum(widths) * 1440))); tw.set(qn("w:type"), "dxa"); tblPr.append(tw)
@@ -60,8 +64,8 @@ class R:
             h.paragraph_format.line_spacing = 1.15
         s = d.sections[0]
         s.page_height = Cm(29.7); s.page_width = Cm(21.0)
-        s.left_margin = Inches(1.4); s.right_margin = Inches(1.0)
-        s.top_margin = Inches(1.0); s.bottom_margin = Inches(1.0)
+        s.left_margin = Inches(1.0); s.right_margin = Inches(0.8)
+        s.top_margin = Inches(0.9); s.bottom_margin = Inches(0.9)
 
     # --- page numbering sections
     def new_section(self, fmt, first=False):
@@ -198,14 +202,14 @@ class R:
 
     def keybox(self, text, title=None, fill="EEF5EE", border="2E7D32"):
         t = self.doc.add_table(rows=1, cols=1); t.alignment = WD_TABLE_ALIGNMENT.CENTER
-        cell = t.rows[0].cells[0]; set_widths(t, [6.0]); self._cell_border(cell, "single", border, 12); self._shade(cell, fill)
+        cell = t.rows[0].cells[0]; set_widths(t, [6.45]); self._cell_border(cell, "single", border, 12); self._shade(cell, fill)
         para = cell.paragraphs[0]
         if title:
             para.paragraph_format.space_after = Pt(2)
             r = para.add_run(title); r.bold = True; r.font.size = Pt(11)
         for k, chunk in enumerate(text.split("\n\n")):
             if title or k: para = cell.add_paragraph()
-            para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
             para.paragraph_format.space_after = Pt(3); para.paragraph_format.line_spacing = 1.3
             self._runs(para, chunk, size=11)
         self.doc.add_paragraph().paragraph_format.space_after = Pt(0)
@@ -228,11 +232,13 @@ class R:
             cells = t.add_row().cells
             for i, v in enumerate(row):
                 para = cells[i].paragraphs[0]; para.paragraph_format.line_spacing = 1.0
+                wide = widths and widths[i] / sum(widths) * TEXTW >= 2.0
+                para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY if wide else WD_ALIGN_PARAGRAPH.LEFT
                 para.paragraph_format.space_after = Pt(1)
                 txt = str(v)
                 if bold_first_col and i == 0: txt = f"**{txt}**" if txt else txt
                 self._runs(para, txt, size=size)
-        if widths: set_widths(t, widths)
+        if widths: set_widths(t, widths, fill=True)
         sp = self.doc.add_paragraph(); sp.paragraph_format.space_after = Pt(4)
         return label
 
@@ -258,7 +264,7 @@ class R:
         para = self.doc.add_paragraph()
         pf = para.paragraph_format; pf.space_after = Pt(1); pf.line_spacing = 1.15
         pf.left_indent = Inches({0: 0, 1: 0, 2: 0.3, 3: 0.6}[level])
-        pf.tab_stops.add_tab_stop(Inches(6.1), WD_TAB_ALIGNMENT.RIGHT, WD_TAB_LEADER.DOTS)
+        pf.tab_stops.add_tab_stop(Inches(6.45), WD_TAB_ALIGNMENT.RIGHT, WD_TAB_LEADER.DOTS)
         r = para.add_run(text); r.font.size = Pt(11 if level >= 2 else 12)
         if level <= 1: r.bold = True
         pg = self.pages.get(key, "")
@@ -275,7 +281,7 @@ def build(pages, toc_seed=None):
 
     # ============ COVER (page i of the roman section, number hidden)
     rp.new_section("lowerRoman", first=True)
-    logo = d.add_table(rows=1, cols=2); logo.alignment = WD_TABLE_ALIGNMENT.CENTER; set_widths(logo, [3.05, 3.05])
+    logo = d.add_table(rows=1, cols=2); logo.alignment = WD_TABLE_ALIGNMENT.CENTER; set_widths(logo, [3.2, 3.2])
     for i, f in enumerate(["logo_aktu.png", "logo_gcet.png"]):
         c = logo.rows[0].cells[i]; para = c.paragraphs[0]
         para.alignment = WD_ALIGN_PARAGRAPH.LEFT if i == 0 else WD_ALIGN_PARAGRAPH.RIGHT
@@ -312,7 +318,7 @@ def build(pages, toc_seed=None):
     P("We hereby declare that the work presented in this progress report, titled **“Arduino-Based Hexapod for Emergency and Surveillance”**, is our own work carried out under the guidance of Mr. Amanpreet Singh Saini, Assistant Professor, Department of Electronics and Communication Engineering, Galgotias College of Engineering and Technology, Greater Noida.")
     P("This is a progress (mid-project) report. It records the work completed up to the date of submission and the work that is still planned. Wherever we have used ideas, data or figures from other sources, they have been acknowledged in the text and listed in the references. The robot has not yet been assembled or tested, and no performance results are claimed in this report.")
     P("", space_after=30)
-    sig = d.add_table(rows=4, cols=3); sig.alignment = WD_TABLE_ALIGNMENT.CENTER; set_widths(sig, [2.03, 2.03, 2.03])
+    sig = d.add_table(rows=4, cols=3); sig.alignment = WD_TABLE_ALIGNMENT.CENTER; set_widths(sig, [2.15, 2.15, 2.15])
     for j, (n, roll) in enumerate([("Md Kaif", "2300970310108"), ("Kevin Norman", "2300970310096"), ("Aryan Kumar Srivastav", "2200970310048")]):
         for i, v in enumerate(["____________________", n, roll, "Date: __________"]):
             para = sig.rows[i].cells[j].paragraphs[0]; para.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -322,7 +328,7 @@ def build(pages, toc_seed=None):
     P("This is to certify that the project progress report titled **“Arduino-Based Hexapod for Emergency and Surveillance”**, submitted by **Md Kaif (2300970310108)**, **Kevin Norman (2300970310096)** and **Aryan Kumar Srivastav (2200970310048)**, is a record of the work carried out by them under my supervision in the Department of Electronics and Communication Engineering, Galgotias College of Engineering and Technology, Greater Noida.")
     P("The report describes the progress of the project up to the stage mentioned in it and is submitted for mid-project evaluation.")
     P("", space_after=40)
-    cert = d.add_table(rows=4, cols=2); cert.alignment = WD_TABLE_ALIGNMENT.CENTER; set_widths(cert, [3.05, 3.05])
+    cert = d.add_table(rows=4, cols=2); cert.alignment = WD_TABLE_ALIGNMENT.CENTER; set_widths(cert, [3.2, 3.2])
     for j, lines in enumerate([["____________________", "Mr. Amanpreet Singh Saini", "Assistant Professor (Project Mentor)", "Department of ECE, GCET"],
                                ["____________________", "[Name of Head of Department]", "Head of Department", "Department of ECE, GCET"]]):
         for i, v in enumerate(lines):
@@ -341,7 +347,7 @@ def build(pages, toc_seed=None):
     P("Search-and-rescue teams often have to inspect places that are unsafe for people — collapsed structures, rubble, or areas after a fire or gas leak. Wheeled robots are cheap and simple but get stuck on debris and steps. Legged robots handle such ground better, and a six-legged (hexapod) robot has the added advantage that it can always keep three feet on the ground, which makes it statically stable while walking.")
     P("This project aims to build a low-cost hexapod robot for emergency surveillance using an **Arduino Uno R3** as the main controller. The planned robot has six legs with three joints each, driven by **18 MG996R servos** through **two PCA9685** 16-channel PWM driver boards on a shared I²C bus. An **ESP32-CAM** on a two-axis (pan–tilt) mount, moved by two SG90 servos, is planned to stream live video over Wi-Fi and pass user commands to the Arduino over a serial link. Three **HC-SR04** ultrasonic sensors are planned for obstacle detection and an **MPU6050** IMU for measuring body tilt. Power comes from a 3S LiPo battery through a fuse and switch into four separate buck converters: two XL4016 modules for the two 6 V servo rails, one LM2596 for the 5 V logic rail and a dedicated LM2596 for the camera.")
     P("Our base paper, by Ji et al. (IEEE Access, 2024), uses reinforcement learning to improve the attitude stability of a hexapod on rough terrain and uses the static stability margin — the distance between the projection of the centre of mass and the edge of the support polygon — as its stability measure. We use its stability concepts to guide our gait and mechanical design, but we do not implement its reinforcement-learning controller, which needs far more computing power than an 8-bit microcontroller offers.")
-    P("At the time of this report, the system architecture has been finalised, the components have been purchased, and a custom PCB that plugs onto the Arduino Uno as a shield (about 114 × 84 mm) has been designed in KiCad, laid out, checked and exported as Gerber files. **PCB fabrication is the next pending step.** The project is now moving into mechanical fabrication through 3D printing of the legs, body plate, electronics box, camera mount and trays. Assembly, firmware, sensor and camera integration and testing are still to be done, and no performance results are reported here.")
+    P("At the time of this report, the system architecture has been finalised, the components have been purchased, and a custom PCB that plugs onto the Arduino Uno as a shield (about 114 × 84 mm) has been designed in KiCad, laid out, checked and exported as Gerber files. **PCB fabrication is the next pending step.** The next stage is mechanical fabrication through 3D printing of the legs, body plate, electronics box, camera mount and trays; this stage has not started yet. Assembly, firmware, sensor and camera integration and testing are still to be done, and no performance results are reported here.")
     P("**Keywords:** hexapod robot, Arduino Uno, PCA9685, ESP32-CAM, custom PCB, KiCad, static stability margin, surveillance robot, 3D printing.")
 
     rp.front_heading("Table of Contents", in_toc=False)
@@ -371,7 +377,7 @@ def build(pages, toc_seed=None):
             para = cells[i].paragraphs[0]; para.paragraph_format.space_after = Pt(0); para.paragraph_format.line_spacing = 1.2
             rr = para.add_run(v); rr.bold = i == 0; rr.font.size = Pt(11)
 
-    set_widths(at, [1.2, 4.6])
+    set_widths(at, [1.3, 5.1])
     # ============ MAIN BODY (arabic)
     rp.new_section("decimal")
 
@@ -407,7 +413,7 @@ def build(pages, toc_seed=None):
     rp.h2("1.5", "Scope of This Progress Report")
     P("This is a mid-project report. It documents what has actually been done so far and what is planned next. To keep this clear, the report uses the following wording throughout:")
     B(["**Completed** — work that is finished: concept, literature study, architecture, component selection and purchase, PCB design, layout, checks and Gerber generation.",
-       "**Pending / starting** — PCB fabrication (ready to order) and 3D printing (being planned and initiated now).",
+       "**Pending / next** — PCB fabrication (ready to order) and 3D printing (the next stage; not started yet).",
        "**Planned** — everything after that: mechanical assembly, electronics integration, firmware and gait programming, sensor and camera integration, calibration and testing."])
     P("The technical descriptions of how the robot will walk, sense and stream video describe the **planned design**. The robot has not been assembled yet, so no walking, obstacle-avoidance, streaming or power-test results are reported.")
     rp.h2("1.6", "Organisation of the Report")
@@ -578,7 +584,7 @@ def build(pages, toc_seed=None):
     rp.table("Phase-wise methodology",
              ["Phase", "Activities", "Status"],
              [["1. Architecture and circuit mapping", "Finalise multi-rail power distribution; define every connection; design the custom PCB shield in KiCad.", "Completed (PCB fabrication pending)"],
-              ["2. Mechanical fabrication", "3D print a test piece and one leg; check servo fit; print remaining legs, body plate, box, camera mount and trays.", "Starting now"],
+              ["2. Mechanical fabrication", "3D print a test piece and one leg; check servo fit; print remaining legs, body plate, box, camera mount and trays.", "Next stage (not started)"],
               ["3. Power and bench testing", "Set and verify all four converters; build the power harness; single-servo test on the 12 V bench adapter.", "Planned"],
               ["4. Board bring-up and assembly", "Solder and continuity-check the PCB; fit modules; I²C scan; assemble legs one at a time.", "Planned (after PCB arrives)"],
               ["5. Kinematics and gait programming", "Inverse kinematics for the coxa–femur–tibia legs; tripod gait with stability considerations.", "Planned"],
@@ -601,7 +607,7 @@ def build(pages, toc_seed=None):
               ["Arduino IDE", "Firmware for the Uno and the ESP32-CAM (planned)"],
               ["VS Code", "Code editing (planned)"],
               ["Git / GitHub", "Version control for design files and code"],
-              ["3D modelling / slicer software (college lab)", "Preparing printable parts (starting)"]],
+              ["3D modelling / slicer software (college lab)", "Preparing printable parts (next stage)"]],
              widths=[2.2, 4.0], size=10)
 
     # ---------------- Chapter 6 PCB
@@ -807,8 +813,11 @@ def build(pages, toc_seed=None):
     rp.table("Component procurement status", ["Component", "Qty", "Purpose", "Status"], rows,
              widths=[2.4, 0.8, 1.9, 1.2], size=9)
     P("Two optional items in the build plan — a microSD card for on-board recording and a 12 V 8–10 A switching supply for tethered table-top demonstrations — are not part of the required list. [Team to state here whether these were bought.]")
-    rp.placeholder("Insert photograph of the purchased components laid out on a table here", "Purchased components", 2.4)
-    rp.placeholder("Insert close-up photographs of the servos, driver boards, ESP32-CAM and converters here", "Key modules purchased for the robot", 2.2)
+    P("Figure 7.1 shows some of the procured components laid out together. It is not a complete set — for example, only one MG996R, one HC-SR04 and one PCA9685 are shown — but it gives an idea of the main parts: an XL4016 and an LM2596 buck converter, the Arduino Uno R3, the ESP32-WROOM-32 development board, a PCA9685 driver, the 3S 2200 mAh LiPo pack with its XT60 connector, the B3 balance charger, an HC-SR04 sensor, an MG996R and an SG90 servo, the resistor kit, capacitors, 1N4007 diodes and pin headers. None of these parts has been installed on the robot yet.")
+    rp.figure("photo_components.jpg", "Some of the procured components (photograph taken by the team)", 5.6)
+    P("Figures 7.2 and 7.3 show close-ups of four of the main modules. The ESP32-WROOM-32 development board in Figure 7.2(b) is not part of the robot itself; it will be used as the USB-to-serial programmer for the ESP32-CAM, as described in Section 6.4.5. The PCA9685 board in Figure 7.3(d) shows the six I²C address solder pads (marked “Open = 0 / Closed = 1”) that will be used to give the second board the address 0x41, and the V+ row of its output block, which our PCB deliberately leaves unconnected (Section 6.4.2).")
+    rp.figure("photo_uno_esp32.jpg", "(a) Arduino Uno R3 — main controller; (b) ESP32-WROOM-32 development board — programmer for the ESP32-CAM", 4.6)
+    rp.figure("photo_servo_pca9685.jpg", "(c) TowerPro MG996R metal-gear servo — leg actuator; (d) PCA9685 16-channel PWM driver", 6.1)
     rp.h2("7.3", "Components Deliberately Not Used")
     P("A few parts we already owned were considered and left out. An **L298N motor driver** drives DC motors, and every moving part of this robot is a servo, so there is nothing for it to drive; it would also add about 30 g. A **4-channel relay module** was considered for cutting servo power in an emergency, but the OE line of the driver boards already does this electronically in microseconds, and relays switching several amperes of DC tend to arc. The relay module will instead be used on the test bench as a switch for the bench supply.")
     rp.h2("7.4", "Estimated Cost")
@@ -827,7 +836,8 @@ def build(pages, toc_seed=None):
     # ---------------- Chapter 8 Mechanical
     rp.chapter("Mechanical Design and 3D Printing Plan")
     rp.h2("8.1", "Current Stage")
-    P("With the components purchased and the PCB ready for fabrication, **the next stage is to begin 3D printing and mechanical prototyping.** The college provides the 3D printing facility and material. This stage is currently being planned and started; no structural parts have been printed yet.")
+    P("With the components purchased and the PCB ready for fabrication, **the next stage is to begin 3D printing and mechanical prototyping.** The college provides the 3D printing facility and material.")
+    rp.keybox("We have not started the 3D printing phase yet. For this reason, this report does not contain any photographs of printed parts or of an assembled robot. This chapter describes what will be printed, why dimensional accuracy matters, and the order in which printing will be done. Photographs of the printed parts will be added in the final report.", "Status of the mechanical stage", fill="FFF8E1", border="B45309")
     rp.h2("8.2", "Parts to Be Printed")
     rp.table("Planned 3D-printed parts",
              ["Part", "Qty", "Purpose / design notes"],
@@ -843,7 +853,6 @@ def build(pages, toc_seed=None):
               ["Spare tibias", "2", "Planned spares for the demonstration"]],
              widths=[2.2, 0.8, 3.2], size=9.5)
     P("We plan to start from an existing leg model, study it, and adapt it to our link lengths and to the dimensions of our actual servos, rather than design every leg part from zero.")
-    rp.placeholder("Insert screenshot of the 3D model of the hexapod / leg assembly here (when ready)", "3D model of the hexapod", 2.4)
     rp.h2("8.3", "Why Dimensional Accuracy Matters")
     P("For a walking robot, small mechanical errors turn directly into walking problems, and most of them cannot be corrected in software:")
     B(["**Servo mounting dimensions:** the servo pocket must hold the MG996R body firmly. If it is loose, the servo body rocks inside the bracket and the joint has play; if it is tight, the part cracks or the servo cannot be inserted. Printed holes and pockets usually come out slightly smaller than modelled, which is why a tolerance test comes first.",
@@ -863,7 +872,6 @@ def build(pages, toc_seed=None):
     P("The build plan estimates about 25 hours of printer time for the legs, body and box together. While the parts are printing, the PCB order and the bench power tests can proceed in parallel.")
     rp.h2("8.5", "Mass Placement for Stability")
     P("The mechanical layout follows directly from the stability discussion in Chapter 3. The battery and converters (about 245 g) are placed under the body plate, at the lowest point of the robot, which offsets the camera turret on top. The turret is kept light and over the centre of the box, not out on the nose, because a heavy camera on a long arm would raise the centre of mass and push its projection towards the edge of the support triangle during turns. The planned standing height of the body is 70–90 mm off the floor; standing taller looks impressive but uses more battery and makes tipping more likely.")
-    rp.placeholder("Insert photographs of the first 3D-printed test pieces here (after printing)", "First 3D-printed test parts", 2.0)
 
     # ---------------- Chapter 9 Progress
     rp.chapter("Current Project Progress")
@@ -876,7 +884,7 @@ def build(pages, toc_seed=None):
               ["Component procurement", "Completed"], ["PCB schematic / design", "Completed"],
               ["PCB layout", "Completed"], ["PCB design verification (ERC, DRC, cross-checks)", "Completed"],
               ["Gerber generation", "Completed"], ["PCB fabrication / order", "Pending — next step"],
-              ["3D mechanical design / printing", "Starting"], ["Mechanical assembly", "Pending"],
+              ["3D mechanical design / printing", "Not started — next stage"], ["Mechanical assembly", "Pending"],
               ["Electronics integration", "Pending"], ["Firmware / gait programming", "Pending"],
               ["Sensor integration", "Pending"], ["Camera integration", "Pending"],
               ["Testing", "Pending"], ["Final demonstration", "Pending"]],
@@ -891,7 +899,7 @@ def build(pages, toc_seed=None):
        "**Generated the Gerber and drill files**, which are ready for fabrication."])
     rp.h2("9.3", "Work in Progress")
     B(["Placing the PCB order (the only remaining step for the PCB itself).",
-       "Planning and starting 3D printing: booking printer time, preparing the leg model and test pieces."])
+       "Preparing for the 3D printing stage, which has not started yet: booking printer time in the college lab and choosing the leg model to adapt."])
     rp.h2("9.4", "Work Remaining")
     B(["PCB fabrication, soldering and continuity checks.",
        "Setting and verifying the four converters; building the power harness.",
@@ -996,7 +1004,7 @@ def build(pages, toc_seed=None):
     P("This report has described the progress of our final-year project, the Arduino-Based Hexapod for Emergency and Surveillance, up to the end of the design and procurement stage.")
     P("So far, we have finalised the project concept and the system architecture, studied the relevant literature and our base paper, and selected and purchased the required components. The most significant completed milestone is the custom PCB: it has been designed in KiCad as a shield for the Arduino Uno with separate power zones, labelled servo sockets, sensor headers and an isolated camera supply; its layout has been completed and checked; and the Gerber fabrication files have been generated. PCB fabrication is the next pending step.")
     P("From our base paper we have taken the idea of the support polygon and the static stability margin, and used it to guide our choice of gait and the placement of mass in the robot. We have not implemented the paper's reinforcement-learning controller, which is beyond the capability of our controller.")
-    P("The project is now moving into mechanical fabrication through 3D printing. The remaining work involves getting the PCB fabricated, printing and assembling the mechanical parts, integrating the electronics, programming the gait and control, integrating the sensors and the camera, calibration and testing. The robot has not yet been assembled, and no walking, surveillance or power results are claimed at this stage; these will be measured and reported in the final project report.")
+    P("The next stage is mechanical fabrication through 3D printing, which has not started yet. The remaining work involves getting the PCB fabricated, printing and assembling the mechanical parts, integrating the electronics, programming the gait and control, integrating the sensors and the camera, calibration and testing. The robot has not yet been assembled, and no walking, surveillance or power results are claimed at this stage; these will be measured and reported in the final project report.")
 
     # ---------------- References
     rp.chapter("References", numbered=False)
@@ -1044,12 +1052,12 @@ def build(pages, toc_seed=None):
 
     rp.chapter("Appendix B: Evidence to Be Attached", numbered=False)
     P("The following photographs and screenshots should be inserted at the marked places in the report before submission. They are listed here so that none is missed.")
-    rp.table("Checklist of figures to be supplied by the team", ["Item", "Where", "Available now?"],
+    rp.table("Checklist of figures to be supplied by the team", ["Item", "Where", "Status"],
              [["KiCad schematic screenshot", "Section 6.3", "Yes"], ["PCB 2D layout screenshot", "Section 6.5", "Yes"],
               ["PCB 3D view screenshot", "Section 6.5", "Yes"], ["DRC / ERC result screenshot", "Section 6.6", "Yes"],
-              ["Gerber export screenshot", "Section 6.7", "Yes"], ["Photograph of purchased components", "Section 7.2", "Yes"],
-              ["Close-up photographs of key modules", "Section 7.2", "Yes"], ["3D model of hexapod / leg", "Section 8.2", "When ready"],
-              ["First 3D-printed test parts", "Section 8.5", "After printing"]],
+              ["Gerber export screenshot", "Section 6.7", "Yes"], ["Photograph of purchased components", "Section 7.2", "Included (Fig. 7.1)"],
+              ["Close-up photographs of key modules", "Section 7.2", "Included (Figs. 7.2, 7.3)"],
+              ["3D model / printed parts", "Chapter 8", "Not applicable yet — 3D printing not started"]],
              widths=[2.8, 1.5, 1.7], size=10)
     return rp
 

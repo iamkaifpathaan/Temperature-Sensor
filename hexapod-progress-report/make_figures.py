@@ -72,8 +72,8 @@ for i in range(len(pos)-1):
         if x2>x1: arrow(ax,x1+1.75,y1+0.62,x2,y2+0.62)
         else: arrow(ax,x1,y1+0.62,x2+1.75,y2+0.62)
     else: arrow(ax,x1+0.87,y1,x2+0.87,y2+1.25)
-ax.text(0.1,4.85,"■ completed",color=DONE,fontsize=8); ax.text(2.2,4.85,"■ pending order / starting now",color=NOW,fontsize=8); ax.text(6.3,4.85,"■ not started",color=TODO,fontsize=8)
-ax.annotate("current stage",xy=(10.2+0.9,3.2+1.3),xytext=(8.9,4.85),fontsize=8,color=NOW,fontweight="bold",arrowprops=dict(arrowstyle="-|>",color=NOW))
+ax.text(0.1,4.85,"■ completed",color=DONE,fontsize=8); ax.text(2.2,4.85,"■ immediate next steps",color=NOW,fontsize=8); ax.text(6.3,4.85,"■ later stages",color=TODO,fontsize=8)
+ax.annotate("next stages",xy=(10.2+0.9,3.2+1.3),xytext=(8.9,4.85),fontsize=8,color=NOW,fontweight="bold",arrowprops=dict(arrowstyle="-|>",color=NOW))
 save(fig,"fig_progress_path.png")
 
 # Fig: power distribution detail
