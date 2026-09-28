@@ -24,3 +24,11 @@ big = load(1); big.thumbnail((1800, 1800)); big.save(os.path.join(OUT, "photo_co
 pair([2, 3], ["(a) Arduino Uno R3", "(b) ESP32-WROOM-32 dev board"], "photo_uno_esp32.jpg")
 pair([4, 5], ["(c) MG996R servo (TowerPro)", "(d) PCA9685"], "photo_servo_pca9685.jpg")
 print("ok")
+
+# KiCad screenshots supplied by the team (PNG, flattened onto white)
+names = {6: "kicad_drc.png", 7: "kicad_layout_2d.png", 8: "kicad_erc.png", 9: "kicad_schematic_1.png", 10: "kicad_schematic_2.png"}
+for n, out in names.items():
+    p = os.path.join(SRC, f"{n}.png")
+    if os.path.exists(p):
+        im = Image.open(p).convert("RGBA"); bg = Image.new("RGB", im.size, "white"); bg.paste(im, mask=im.split()[3])
+        bg.save(os.path.join(OUT, out))

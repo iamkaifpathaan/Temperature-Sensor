@@ -633,7 +633,10 @@ def build(pages, toc_seed=None):
        "**Board layout:** board outline, placement of connectors and modules, power zones, routing of signals, and the ground pour.",
        "**Design Rule Check (DRC):** run on the layout to find clearance violations, unrouted connections and track-width problems.",
        "**Gerber and drill file export** for fabrication."])
-    rp.placeholder("Insert screenshot of the complete KiCad schematic here", "KiCad schematic of the hexapod shield PCB", 2.2)
+    P("The schematic is drawn on two sheets. The first sheet (Figure 6.1) holds the Arduino shield headers J1–J4, the two PCA9685 modules, the bulk and decoupling capacitors, the camera-servo diode D1, the battery-sense divider, the camera serial divider, the LEDs and the buzzer driver. The second sheet (Figure 6.2) holds the 20 servo sockets, the sensor headers J21–J24, the camera connector J25, the power terminals J26–J30 and the programming jumper JP1.")
+    rp.figure("kicad_schematic_1.png", "KiCad schematic, sheet 1 — Arduino headers, PCA9685 modules (U2, U3), capacitors and support circuits", 6.4)
+    rp.figure("kicad_schematic_2.png", "KiCad schematic, sheet 2 — servo sockets, sensor headers, camera connector and power terminals", 6.4)
+    P("Two details of the schematic are worth pointing out. First, the PCA9685 boards are drawn as 24-pin connector symbols (U2 and U3), because on our PCB they are plug-in modules seated in female headers, not chips soldered to the board. Second, the small blue crosses on unused pins are KiCad **no-connect flags**, placed with the Q key. They mark pins that we left unconnected on purpose — for example D0/D1, VIN and the unused driver channels — so that the checker knows these pins are not forgotten wiring.")
     rp.h2("6.4", "Schematic Development")
     rp.h3("6.4.1", "Arduino Uno Interface")
     P("Every Uno pin has a defined job. The I²C pins are shared by both drivers and the IMU. D0 and D1 are deliberately left unconnected because they are used for USB programming; anything connected to them would stop us uploading code. A0 is used for battery voltage sensing and A1–A3 are left free as spare pads.")
@@ -716,26 +719,35 @@ def build(pages, toc_seed=None):
        "**Bulk capacitors close to the loads:** C1 and C2 sit right beside the servo sockets they serve, and the camera capacitors sit at the camera connector.",
        "**Silkscreen labels:** every servo socket carries its joint label (R1-C, R1-F, R1-T and so on), and terminals are marked with polarity and voltage.",
        "**PCA9685 footprint:** the channels on the driver modules sit in four groups of four with uneven gaps, so the footprint was made to match the real module rather than assuming an even 2.54 mm pitch across the block."])
-    rp.placeholder("Insert screenshot of the completed PCB layout (2D view, all copper layers) from KiCad here", "PCB 2D layout in KiCad", 2.6)
+    rp.figure("kicad_layout_2d.png", "Completed PCB layout in KiCad (red: front copper, blue: back copper ground pour)", 6.4)
+    P("In the finished layout (Figure 6.4), the right-side leg sockets and the two camera-servo sockets run along the top edge and the left-side leg sockets along the bottom edge. The four converter terminals J26–J29 sit on the right edge. The wide +6V_A and +6V_B copper areas run from terminals J26 and J27 to their socket rows, with the 2200 µF capacitors C1 and C2 placed on these areas. The two PCA9685 module footprints occupy the middle of the board, and the four corner holes H1–H4 are for mounting. The blue area is the ground pour on the back copper layer.")
     rp.placeholder("Insert screenshot of the KiCad 3D viewer (top view) of the finished board here", "3D view of the PCB in KiCad", 2.4)
     P("Some board parameters should be read directly from our final KiCad files. They are listed below so that the table can be completed before submission.")
     rp.table("PCB design data (to be filled in from the final KiCad project)",
              ["Parameter", "Value"],
              [["Board size", "About 114 × 84 mm per the design plan — [confirm final outline from KiCad]"],
-              ["Number of copper layers", "[fill in]"],
+              ["Number of copper layers", "Two (front and back copper, as seen in the layout)"],
               ["Minimum signal track width / clearance", "[fill in]"],
               ["Width / type of 6 V power paths", "[fill in — copper zones / track width]"],
               ["KiCad version used", "[fill in]"],
               ["Fabrication house (planned)", "[fill in when ordered]"]],
              widths=[2.5, 3.7], size=10)
     rp.h2("6.6", "Design Verification")
-    P("Before exporting fabrication files, the design was checked in the following ways:")
-    B(["**ERC** on the schematic, to make sure every pin is connected as intended and every power net has a source.",
-       "**DRC** on the layout, to check clearances, unrouted nets and track widths against the rules set for the board.",
-       "**Cross-checking the netlist against our connection tables** — in particular that V+ pads of the driver modules belong to no net, the two 6 V zones are separate, the camera 5 V node is isolated from the logic 5 V, and D0/D1 and VIN are unconnected.",
+    P("Before exporting fabrication files, the design was checked with KiCad's Electrical Rules Checker (ERC) on the schematic and Design Rules Checker (DRC) on the layout. The netlist was also cross-checked by hand against our connection tables, and the footprints against the real modules we had purchased.")
+    rp.h3("6.6.1", "Electrical Rules Check (ERC)")
+    rp.figure("kicad_erc.png", "ERC result — 0 violations, 0 errors and 0 warnings", 4.4)
+    P("The final ERC run reports **0 violations, 0 errors and 0 warnings** (Figure 6.6). Three ERC tests were set to “ignored”. We looked at each one and they are not needed for a board like ours:")
+    B(["**“Global label only appears once in the schematic.”** This warning appears when a net label is used on only one wire. For us, some labels (for example VBAT_SENSE) are used only to give a net a readable name. The pins on that net are still joined by wires, so the connection is not affected; the label is there for readability.",
+       "**“Four connection points are joined together.”** KiCad warns about four-way junctions because a crossing and a junction can look alike on a printed schematic. In our schematic these are deliberate junctions, and each one is marked with a junction dot, so there is no doubt about the connection.",
+       "**“Assigned footprint doesn't match footprint filters.”** This happens when a footprint is chosen that is not in the symbol's suggested list. On our board this is intentional: the PCA9685 modules, sensor headers and screw terminals use footprints we chose to match the actual purchased parts, which were checked physically."])
+    P("None of these three tests concerns an electrical fault, so leaving them ignored does not hide a real error. Pins that are intentionally unused carry no-connect flags (Section 6.4), which is why ERC reports no unconnected-pin errors.")
+    rp.h3("6.6.2", "Design Rules Check (DRC)")
+    rp.figure("kicad_drc.png", "DRC result — 0 unconnected items; the listed violations are silkscreen clearance", 4.4)
+    P("The DRC result is shown in Figure 6.7. The most important number here is **Unconnected Items: 0** — every net in the schematic is routed on the board, and no connection is missing. The DRC also lists 141 errors and 48 warnings. The errors are of the **silkscreen clearance** type, for example the outline of capacitor C4 on the front silkscreen layer sitting too close to the reference text of J29. These concern only the printed white markings on the board. They do not change any copper track, pad, clearance between copper or connection, so they do not affect how the board works electrically. We know the connections of this board in detail and checked them against our connection tables, so we treated these markings-related errors as acceptable for this board.")
+    P("A practical note: when the board is fabricated, the manufacturer usually clips any silkscreen that overlaps a pad, so some labels may appear slightly trimmed. This is cosmetic only. If time allows before ordering, the overlapping labels can be moved to make the printed markings neater.")
+    rp.h3("6.6.3", "Other Checks")
+    B(["**Cross-checking the netlist against our connection tables** — in particular that the V+ pads of the driver modules belong to no net, the two 6 V zones are separate, the camera 5 V node is isolated from the logic 5 V, and D0/D1 and VIN are unconnected.",
        "**Footprint checks against the real modules** that we had purchased, using the physical parts."])
-    P("The board was taken to Gerber export only after these checks had been run and the reported problems resolved.")
-    rp.placeholder("Insert screenshot of the KiCad DRC report / ERC result here", "Design rule check result in KiCad", 1.8)
     P("One more check is planned just before placing the order: printing the layout on paper at 1:1 scale and placing the actual modules, headers and terminals on it to confirm the footprints and spacing by eye. This is a cheap way to catch a footprint mistake before paying for fabrication.")
     rp.h2("6.7", "Gerber Generation")
     P("After the checks, the fabrication outputs were exported from KiCad: Gerber files for the copper, solder-mask, silkscreen and board-outline (edge cut) layers, together with the drill file. These files are what a PCB manufacturer uses to make the board, and they are ready to be uploaded for fabrication.")
@@ -744,8 +756,8 @@ def build(pages, toc_seed=None):
     rp.keybox("The PCB design has been completed and the Gerber fabrication files have been generated. PCB fabrication/ordering is the next pending step.\n\nThe board has not yet been fabricated or received, and it has not been soldered or tested.", "Status", fill="FFF8E1", border="B45309")
     rp.table("PCB milestone status",
              ["PCB stage", "Status"],
-             [["Connection definition", "Completed"], ["Schematic in KiCad", "Completed"], ["ERC", "Completed"],
-              ["Footprint assignment", "Completed"], ["PCB layout", "Completed"], ["DRC", "Completed"],
+             [["Connection definition", "Completed"], ["Schematic in KiCad", "Completed"], ["ERC", "Completed — 0 errors, 0 warnings"],
+              ["Footprint assignment", "Completed"], ["PCB layout", "Completed"], ["DRC", "Completed — 0 unconnected items; silkscreen-only violations"],
               ["Gerber and drill export", "Completed"], ["1:1 paper print check", "Planned before ordering"],
               ["Ordering / fabrication", "Pending — next step"], ["Soldering and continuity checks", "Planned after the board arrives"],
               ["Bring-up (power on, I²C scan)", "Planned"]],
@@ -853,6 +865,7 @@ def build(pages, toc_seed=None):
               ["Spare tibias", "2", "Planned spares for the demonstration"]],
              widths=[2.2, 0.8, 3.2], size=9.5)
     P("We plan to start from an existing leg model, study it, and adapt it to our link lengths and to the dimensions of our actual servos, rather than design every leg part from zero.")
+    rp.placeholder("The 3D printing phase has not been started yet, so no image is available at this stage. The 3D model of the hexapod will be added here once it is ready.", "3D model of the hexapod", 1.6)
     rp.h2("8.3", "Why Dimensional Accuracy Matters")
     P("For a walking robot, small mechanical errors turn directly into walking problems, and most of them cannot be corrected in software:")
     B(["**Servo mounting dimensions:** the servo pocket must hold the MG996R body firmly. If it is loose, the servo body rocks inside the bracket and the joint has play; if it is tight, the part cracks or the servo cannot be inserted. Printed holes and pockets usually come out slightly smaller than modelled, which is why a tolerance test comes first.",
@@ -873,6 +886,7 @@ def build(pages, toc_seed=None):
     rp.h2("8.5", "Mass Placement for Stability")
     P("The mechanical layout follows directly from the stability discussion in Chapter 3. The battery and converters (about 245 g) are placed under the body plate, at the lowest point of the robot, which offsets the camera turret on top. The turret is kept light and over the centre of the box, not out on the nose, because a heavy camera on a long arm would raise the centre of mass and push its projection towards the edge of the support triangle during turns. The planned standing height of the body is 70–90 mm off the floor; standing taller looks impressive but uses more battery and makes tipping more likely.")
 
+    rp.placeholder("The 3D printing phase has not been started yet, so no photographs of printed parts are available at this stage. They will be added here after the first parts are printed.", "First 3D-printed test parts", 1.6)
     # ---------------- Chapter 9 Progress
     rp.chapter("Current Project Progress")
     rp.h2("9.1", "Progress Summary")
@@ -1053,11 +1067,12 @@ def build(pages, toc_seed=None):
     rp.chapter("Appendix B: Evidence to Be Attached", numbered=False)
     P("The following photographs and screenshots should be inserted at the marked places in the report before submission. They are listed here so that none is missed.")
     rp.table("Checklist of figures to be supplied by the team", ["Item", "Where", "Status"],
-             [["KiCad schematic screenshot", "Section 6.3", "Yes"], ["PCB 2D layout screenshot", "Section 6.5", "Yes"],
-              ["PCB 3D view screenshot", "Section 6.5", "Yes"], ["DRC / ERC result screenshot", "Section 6.6", "Yes"],
-              ["Gerber export screenshot", "Section 6.7", "Yes"], ["Photograph of purchased components", "Section 7.2", "Included (Fig. 7.1)"],
+             [["KiCad schematic screenshots", "Section 6.3", "Included (Figs. 6.1, 6.2)"], ["PCB 2D layout screenshot", "Section 6.5", "Included (Fig. 6.4)"],
+              ["PCB 3D view screenshot", "Section 6.5", "To be added"], ["ERC and DRC result screenshots", "Section 6.6", "Included (Figs. 6.6, 6.7)"],
+              ["Gerber export screenshot", "Section 6.7", "To be added"], ["Photograph of purchased components", "Section 7.2", "Included (Fig. 7.1)"],
               ["Close-up photographs of key modules", "Section 7.2", "Included (Figs. 7.2, 7.3)"],
-              ["3D model / printed parts", "Chapter 8", "Not applicable yet — 3D printing not started"]],
+              ["3D model of the hexapod", "Section 8.2", "Not available — 3D printing not started"],
+              ["3D-printed test parts", "Section 8.5", "Not available — 3D printing not started"]],
              widths=[2.8, 1.5, 1.7], size=10)
     return rp
 
