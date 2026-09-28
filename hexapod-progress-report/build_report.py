@@ -232,7 +232,7 @@ class R:
             cells = t.add_row().cells
             for i, v in enumerate(row):
                 para = cells[i].paragraphs[0]; para.paragraph_format.line_spacing = 1.0
-                wide = widths and widths[i] / sum(widths) * TEXTW >= 2.0
+                wide = widths and widths[i] / sum(widths) * TEXTW >= 2.6
                 para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY if wide else WD_ALIGN_PARAGRAPH.LEFT
                 para.paragraph_format.space_after = Pt(1)
                 txt = str(v)
@@ -330,7 +330,7 @@ def build(pages, toc_seed=None):
     P("", space_after=40)
     cert = d.add_table(rows=4, cols=2); cert.alignment = WD_TABLE_ALIGNMENT.CENTER; set_widths(cert, [3.2, 3.2])
     for j, lines in enumerate([["____________________", "Mr. Amanpreet Singh Saini", "Assistant Professor (Project Mentor)", "Department of ECE, GCET"],
-                               ["____________________", "[Name of Head of Department]", "Head of Department", "Department of ECE, GCET"]]):
+                               ["____________________", "Name: ____________________", "Head of Department", "Department of ECE, GCET"]]):
         for i, v in enumerate(lines):
             para = cert.rows[i].cells[j].paragraphs[0]; para.alignment = WD_ALIGN_PARAGRAPH.CENTER
             para.paragraph_format.space_after = Pt(0); rr = para.add_run(v); rr.font.size = Pt(11); rr.bold = i == 1
@@ -721,29 +721,41 @@ def build(pages, toc_seed=None):
        "**PCA9685 footprint:** the channels on the driver modules sit in four groups of four with uneven gaps, so the footprint was made to match the real module rather than assuming an even 2.54 mm pitch across the block."])
     rp.figure("kicad_layout_2d.png", "Completed PCB layout in KiCad (red: front copper, blue: back copper ground pour)", 6.4)
     P("In the finished layout (Figure 6.4), the right-side leg sockets and the two camera-servo sockets run along the top edge and the left-side leg sockets along the bottom edge. The four converter terminals J26–J29 sit on the right edge. The wide +6V_A and +6V_B copper areas run from terminals J26 and J27 to their socket rows, with the 2200 µF capacitors C1 and C2 placed on these areas. The two PCA9685 module footprints occupy the middle of the board, and the four corner holes H1–H4 are for mounting. The blue area is the ground pour on the back copper layer.")
-    rp.placeholder("Insert screenshot of the KiCad 3D viewer (top view) of the finished board here", "3D view of the PCB in KiCad", 2.4)
-    P("Some board parameters should be read directly from our final KiCad files. They are listed below so that the table can be completed before submission.")
-    rp.table("PCB design data (to be filled in from the final KiCad project)",
+    rp.h3("6.5.1", "3D View of the Board")
+    P("KiCad's 3D viewer was used to check the assembled board before exporting the fabrication files. It shows every through-hole part at its real size, which helps catch problems that a flat layout hides — parts that are too close together, connectors facing the wrong way, or components that are too tall for the space they will sit in.")
+    rp.figure("kicad_3d_top.png", "3D view of the PCB in KiCad — top view", 5.6)
+    rp.figure("kicad_3d_iso.png", "3D views of the PCB from both sides", 6.4)
+    rp.figure("kicad_3d_side.png", "Side and edge views of the PCB, showing component heights", 6.4)
+    P("From the 3D views we made the following observations about the board:")
+    B(["**Power terminals:** the four screw terminals J26–J29 sit in a row along one edge with their wire entries facing outwards, so the converter leads can be tightened from the side without reaching over other parts (Figure 6.7(d)).",
+       "**Power copper areas:** the wide +6V_A and +6V_B areas are clearly visible in the top view (Figure 6.5), running from J26 and J27 to the two rows of servo sockets.",
+       "**Servo sockets:** the three-pin servo headers are grouped in labelled blocks along the top and bottom edges, so each leg's cables leave the board in one bundle.",
+       "**Component height:** the tallest parts are the 2200 µF capacitors C1 and C2 and the screw terminals (Figure 6.7(c)). The electronics box, which will be designed during the 3D-printing stage, must leave enough height above these parts, and also above the PCA9685 modules, which plug into their headers from above.",
+       "**Leads under the board:** the side views show the through-hole leads coming out underneath the board. Because the shield sits directly on top of the Arduino Uno, these leads will be trimmed short after soldering and checked for clearance from the Uno's USB and power jacks, so that nothing on the underside can short against the Arduino.",
+       "**Indicators:** the two LEDs and the buzzer BZ1 are placed at the board edge, where they will be visible and audible through the electronics box."])
+    P("The main board parameters are summarised in Table 6.5.")
+    rp.table("PCB design data",
              ["Parameter", "Value"],
-             [["Board size", "About 114 × 84 mm per the design plan — [confirm final outline from KiCad]"],
-              ["Number of copper layers", "Two (front and back copper, as seen in the layout)"],
-              ["Minimum signal track width / clearance", "[fill in]"],
-              ["Width / type of 6 V power paths", "[fill in — copper zones / track width]"],
-              ["KiCad version used", "[fill in]"],
-              ["Fabrication house (planned)", "[fill in when ordered]"]],
+             [["Board type", "Shield for the Arduino Uno R3 (stacking headers J1–J4)"],
+              ["Board size", "About 114 × 84 mm (as per the design plan)"],
+              ["Number of copper layers", "Two (front and back copper)"],
+              ["Power distribution", "Copper areas for +6V_A and +6V_B; ground pour on the back layer"],
+              ["Mounting", "Four corner mounting holes (H1–H4)"],
+              ["Components", "Through-hole parts throughout"],
+              ["Fabrication", "Gerber files ready; order pending"]],
              widths=[2.5, 3.7], size=10)
     rp.h2("6.6", "Design Verification")
     P("Before exporting fabrication files, the design was checked with KiCad's Electrical Rules Checker (ERC) on the schematic and Design Rules Checker (DRC) on the layout. The netlist was also cross-checked by hand against our connection tables, and the footprints against the real modules we had purchased.")
     rp.h3("6.6.1", "Electrical Rules Check (ERC)")
     rp.figure("kicad_erc.png", "ERC result — 0 violations, 0 errors and 0 warnings", 4.4)
-    P("The final ERC run reports **0 violations, 0 errors and 0 warnings** (Figure 6.6). Three ERC tests were set to “ignored”. We looked at each one and they are not needed for a board like ours:")
+    P("The final ERC run reports **0 violations, 0 errors and 0 warnings** (Figure 6.8). Three ERC tests were set to “ignored”. We looked at each one and they are not needed for a board like ours:")
     B(["**“Global label only appears once in the schematic.”** This warning appears when a net label is used on only one wire. For us, some labels (for example VBAT_SENSE) are used only to give a net a readable name. The pins on that net are still joined by wires, so the connection is not affected; the label is there for readability.",
        "**“Four connection points are joined together.”** KiCad warns about four-way junctions because a crossing and a junction can look alike on a printed schematic. In our schematic these are deliberate junctions, and each one is marked with a junction dot, so there is no doubt about the connection.",
        "**“Assigned footprint doesn't match footprint filters.”** This happens when a footprint is chosen that is not in the symbol's suggested list. On our board this is intentional: the PCA9685 modules, sensor headers and screw terminals use footprints we chose to match the actual purchased parts, which were checked physically."])
     P("None of these three tests concerns an electrical fault, so leaving them ignored does not hide a real error. Pins that are intentionally unused carry no-connect flags (Section 6.4), which is why ERC reports no unconnected-pin errors.")
     rp.h3("6.6.2", "Design Rules Check (DRC)")
     rp.figure("kicad_drc.png", "DRC result — 0 unconnected items; the listed violations are silkscreen clearance", 4.4)
-    P("The DRC result is shown in Figure 6.7. The most important number here is **Unconnected Items: 0** — every net in the schematic is routed on the board, and no connection is missing. The DRC also lists 141 errors and 48 warnings. The errors are of the **silkscreen clearance** type, for example the outline of capacitor C4 on the front silkscreen layer sitting too close to the reference text of J29. These concern only the printed white markings on the board. They do not change any copper track, pad, clearance between copper or connection, so they do not affect how the board works electrically. We know the connections of this board in detail and checked them against our connection tables, so we treated these markings-related errors as acceptable for this board.")
+    P("The DRC result is shown in Figure 6.9. The most important number here is **Unconnected Items: 0** — every net in the schematic is routed on the board, and no connection is missing. The DRC also lists 141 errors and 48 warnings. The errors are of the **silkscreen clearance** type, for example the outline of capacitor C4 on the front silkscreen layer sitting too close to the reference text of J29. These concern only the printed white markings on the board. They do not change any copper track, pad, clearance between copper or connection, so they do not affect how the board works electrically. We know the connections of this board in detail and checked them against our connection tables, so we treated these markings-related errors as acceptable for this board.")
     P("A practical note: when the board is fabricated, the manufacturer usually clips any silkscreen that overlaps a pad, so some labels may appear slightly trimmed. This is cosmetic only. If time allows before ordering, the overlapping labels can be moved to make the printed markings neater.")
     rp.h3("6.6.3", "Other Checks")
     B(["**Cross-checking the netlist against our connection tables** — in particular that the V+ pads of the driver modules belong to no net, the two 6 V zones are separate, the camera 5 V node is isolated from the logic 5 V, and D0/D1 and VIN are unconnected.",
@@ -751,7 +763,20 @@ def build(pages, toc_seed=None):
     P("One more check is planned just before placing the order: printing the layout on paper at 1:1 scale and placing the actual modules, headers and terminals on it to confirm the footprints and spacing by eye. This is a cheap way to catch a footprint mistake before paying for fabrication.")
     rp.h2("6.7", "Gerber Generation")
     P("After the checks, the fabrication outputs were exported from KiCad: Gerber files for the copper, solder-mask, silkscreen and board-outline (edge cut) layers, together with the drill file. These files are what a PCB manufacturer uses to make the board, and they are ready to be uploaded for fabrication.")
-    rp.placeholder("Insert screenshot of the Gerber files generated in KiCad (plot dialog or Gerber viewer) here", "Gerber files exported from KiCad", 2.2)
+    P("The exported file set (project name “hex-pcb”, exported on 27 September 2026) is listed in Table 6.6.")
+    rp.table("Fabrication files exported from KiCad",
+             ["File", "Contents", "Size"],
+             [["hex-pcb-F_Cu.gbr", "Front copper layer (tracks and pads)", "66 KB"],
+              ["hex-pcb-B_Cu.gbr", "Back copper layer, including the ground pour", "426 KB"],
+              ["hex-pcb-F_Mask.gbr / B_Mask.gbr", "Solder mask, front and back", "12 KB each"],
+              ["hex-pcb-F_Silkscreen.gbr / B_Silkscreen.gbr", "Silkscreen (labels and outlines), front and back", "182 KB / 12 KB"],
+              ["hex-pcb-F_Paste.gbr / B_Paste.gbr", "Solder paste layers — practically empty, as all parts are through-hole", "1 KB each"],
+              ["hex-pcb-Edge_Cuts.gbr", "Board outline", "1 KB"],
+              ["hex-pcb-PTH.drl", "Drill file for plated through-holes (component pins, vias)", "6 KB"],
+              ["hex-pcb-NPTH.drl", "Drill file for non-plated holes (mounting holes)", "1 KB"],
+              ["hex-pcb-job.gbrjob", "Gerber job file describing the layer stack for the manufacturer", "3 KB"]],
+             widths=[2.4, 3.1, 0.9], size=9.5)
+    P("The back copper file is by far the largest because it contains the ground pour that covers most of the back of the board. These files will be compressed into a single ZIP archive and uploaded when the board is ordered.")
     rp.h2("6.8", "Current Status of the PCB")
     rp.keybox("The PCB design has been completed and the Gerber fabrication files have been generated. PCB fabrication/ordering is the next pending step.\n\nThe board has not yet been fabricated or received, and it has not been soldered or tested.", "Status", fill="FFF8E1", border="B45309")
     rp.table("PCB milestone status",
@@ -767,6 +792,7 @@ def build(pages, toc_seed=None):
     B(["continuity check that no power rail is shorted to ground;",
        "the two 6 V zones are not connected to each other, and the camera node is not connected to the logic 5 V;",
        "the 6 V zones actually reach pin 2 of the correct servo sockets;",
+       "after soldering: trim all through-hole leads on the underside and check that nothing touches the Arduino Uno's USB or power jack when the shield is plugged in;",
        "after fitting modules: power on without servos and confirm that nothing gets warm and an I²C scanner sketch finds 0x40, 0x41 and 0x68;",
        "with the Arduino held in reset, all servo outputs should be limp, which proves the OE pull-up works."])
 
@@ -824,7 +850,7 @@ def build(pages, toc_seed=None):
     ]
     rp.table("Component procurement status", ["Component", "Qty", "Purpose", "Status"], rows,
              widths=[2.4, 0.8, 1.9, 1.2], size=9)
-    P("Two optional items in the build plan — a microSD card for on-board recording and a 12 V 8–10 A switching supply for tethered table-top demonstrations — are not part of the required list. [Team to state here whether these were bought.]")
+    P("Two optional items in the build plan — a microSD card for on-board recording and a 12 V 8–10 A switching supply for tethered table-top demonstrations — are not part of the required list and are not included in the table above.")
     P("Figure 7.1 shows some of the procured components laid out together. It is not a complete set — for example, only one MG996R, one HC-SR04 and one PCA9685 are shown — but it gives an idea of the main parts: an XL4016 and an LM2596 buck converter, the Arduino Uno R3, the ESP32-WROOM-32 development board, a PCA9685 driver, the 3S 2200 mAh LiPo pack with its XT60 connector, the B3 balance charger, an HC-SR04 sensor, an MG996R and an SG90 servo, the resistor kit, capacitors, 1N4007 diodes and pin headers. None of these parts has been installed on the robot yet.")
     rp.figure("photo_components.jpg", "Some of the procured components (photograph taken by the team)", 5.6)
     P("Figures 7.2 and 7.3 show close-ups of four of the main modules. The ESP32-WROOM-32 development board in Figure 7.2(b) is not part of the robot itself; it will be used as the USB-to-serial programmer for the ESP32-CAM, as described in Section 6.4.5. The PCA9685 board in Figure 7.3(d) shows the six I²C address solder pads (marked “Open = 0 / Closed = 1”) that will be used to give the second board the address 0x41, and the V+ row of its output block, which our PCB deliberately leaves unconnected (Section 6.4.2).")
@@ -843,7 +869,7 @@ def build(pages, toc_seed=None):
               ["Value of parts reused from team stock (not purchased)", "≈ 1,205"],
               ["PCB fabrication", "Not included"], ["3D printing and filament", "Provided by the college"]],
              widths=[4.0, 2.0], size=10)
-    P("Our earlier presentation mentioned a target of under ₹12,000. The detailed build plan came out higher, mainly because of 19 genuine MG996R servos and two battery packs, which we decided not to compromise on. [Team to add actual amount spent, if required by the department.]")
+    P("Our earlier presentation mentioned a target of under ₹12,000. The detailed build plan came out higher, mainly because of 19 genuine MG996R servos and two battery packs, which we decided not to compromise on.")
 
     # ---------------- Chapter 8 Mechanical
     rp.chapter("Mechanical Design and 3D Printing Plan")
@@ -1064,16 +1090,6 @@ def build(pages, toc_seed=None):
               ["Low battery", "Warn at 10.5 V; sit down and disable servos at 9.9 V"], ["Camera command protocol", "Single characters at 9600 baud: F, B, L, R, S; P/T + number"]],
              widths=[2.0, 4.2], size=10)
 
-    rp.chapter("Appendix B: Evidence to Be Attached", numbered=False)
-    P("The following photographs and screenshots should be inserted at the marked places in the report before submission. They are listed here so that none is missed.")
-    rp.table("Checklist of figures to be supplied by the team", ["Item", "Where", "Status"],
-             [["KiCad schematic screenshots", "Section 6.3", "Included (Figs. 6.1, 6.2)"], ["PCB 2D layout screenshot", "Section 6.5", "Included (Fig. 6.4)"],
-              ["PCB 3D view screenshot", "Section 6.5", "To be added"], ["ERC and DRC result screenshots", "Section 6.6", "Included (Figs. 6.6, 6.7)"],
-              ["Gerber export screenshot", "Section 6.7", "To be added"], ["Photograph of purchased components", "Section 7.2", "Included (Fig. 7.1)"],
-              ["Close-up photographs of key modules", "Section 7.2", "Included (Figs. 7.2, 7.3)"],
-              ["3D model of the hexapod", "Section 8.2", "Not available — 3D printing not started"],
-              ["3D-printed test parts", "Section 8.5", "Not available — 3D printing not started"]],
-             widths=[2.8, 1.5, 1.7], size=10)
     return rp
 
 

@@ -32,3 +32,22 @@ for n, out in names.items():
     if os.path.exists(p):
         im = Image.open(p).convert("RGBA"); bg = Image.new("RGB", im.size, "white"); bg.paste(im, mask=im.split()[3])
         bg.save(os.path.join(OUT, out))
+
+# KiCad 3D viewer renders
+def flat(n):
+    im = Image.open(os.path.join(SRC, f"{n}.png")).convert("RGBA"); bg = Image.new("RGB", im.size, "white"); bg.paste(im, mask=im.split()[3]); return bg
+
+def pair_png(nums, labels, name, h=900, gap=30, pad=70):
+    ims = [flat(n) for n in nums]
+    ims = [im.resize((round(im.width * h / im.height), h), Image.LANCZOS) for im in ims]
+    W = sum(im.width for im in ims) + gap * (len(ims) - 1)
+    c = Image.new("RGB", (W, h + pad), "white"); d = ImageDraw.Draw(c); x = 0
+    f = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 34)
+    for im, lab in zip(ims, labels):
+        c.paste(im, (x, 0)); tw = d.textlength(lab, font=f); d.text((x + (im.width - tw) / 2, h + 16), lab, fill="black", font=f); x += im.width + gap
+    c.save(os.path.join(OUT, name))
+
+if os.path.exists(os.path.join(SRC, "15.png")):
+    flat(15).save(os.path.join(OUT, "kicad_3d_top.png"))
+    pair_png([11, 12], ["(a) View from the power-terminal side", "(b) View from the LED / buzzer side"], "kicad_3d_iso.png")
+    pair_png([13, 14], ["(c) Side view", "(d) Terminal-edge view"], "kicad_3d_side.png", h=600)
