@@ -4,6 +4,7 @@
 |---|---|---|
 | `Royal_Compass_Internal_Marketing_Playbook.pdf` | **Internal only** | Explains every workstream in plain language, with 30 FAQ answers, 16 difficult-question answers, a timeline, a reporting framework and scope protection. |
 | `Royal_Compass_Month1_Client_Presentation.pptx` | Client | 10-slide Month 1 plan. The speaker notes are safe for the client to see. |
+| `Royal_Compass_Month1_Client_Presentation.pdf` | Client | PDF copy of the deck, for email or WhatsApp. |
 | `source/` | Internal | The files used to regenerate both documents. |
 
 **Scope:** SEO · GEO · AEO · Meta Ads · Instagram (30 posts + 10 reels) · Website fixes & lead funnel
